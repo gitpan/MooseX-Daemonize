@@ -2,12 +2,12 @@ package MooseX::Daemonize;
 use strict;    # because Kwalitee is pedantic
 use Moose::Role;
 
-our $VERSION = 0.01;
+our $VERSION = 0.02;
 use Carp;
 use Proc::Daemon;
 
-use File::Flock;
-use File::Slurp;
+use File::Pid;
+use Moose::Util::TypeConstraints;
 
 with qw(MooseX::Getopt);
 
@@ -23,105 +23,88 @@ has progname => (
 );
 
 has basedir => (
-    isa     => 'Str',
-    is      => 'ro',
-    lazy    => 1,
-    default => sub { return '/' },
+    isa      => 'Str',
+    is       => 'ro',
+    required => 1,
+    lazy     => 1,
+    default  => sub { return '/' },
 );
 
 has pidbase => (
-    isa => 'Str',
-    is  => 'ro',
-
-    #    required => 1,
-    lazy    => 1,
-    default => sub { return '/var/run' },
-);
-
-has pidfile => (
     isa      => 'Str',
     is       => 'ro',
     lazy     => 1,
     required => 1,
-    default  => sub {
-        die 'Cannot write to ' . $_[0]->pidbase unless -w $_[0]->pidbase;
-        $_[0]->pidbase . '/' . $_[0]->progname . '.pid';
+    default  => sub { return '/var/run' },
+);
+
+subtype 'Pidfile' => as 'Object' => where { $_->isa('File::Pid') };
+
+coerce 'Pidfile' => from 'Str' => via { File::Pid->new( { file => $_, } ); };
+
+has pidfile => (
+    isa       => 'Pidfile',
+    is        => 'rw',
+    lazy      => 1,
+    required  => 1,
+    coerce    => 1,
+    predicate => 'has_pidfile',
+    default   => sub {
+        my $file = $_[0]->pidbase . '/' . $_[0]->progname . '.pid';
+        die "Cannot write to $file" unless (-e $file ? -w $file : -w $_[0]->pidbase);
+        File::Pid->new( { file => $file } );
+    },
+    handles => {
+        check      => 'running',
+        save_pid   => 'write',
+        remove_pid => 'remove',
+        get_pid    => 'pid',
+        _pidfile   => 'file',
     },
 );
 
 has foreground => (
-    metaclass   => 'Getopt',
-    cmd_aliases => ['f'],
+    metaclass   => 'MooseX::Getopt::Meta::Attribute',
+    cmd_aliases => 'f',
     isa         => 'Bool',
     is          => 'ro',
     default     => sub { 0 },
 );
 
-sub check {
-    my ($self) = @_;
-    if ( my $pid = $self->get_pid ) {
-        my $prog = $self->progname;
-        if ( CORE::kill 0 => $pid ) {
-            croak "$prog already running ($pid).";
-        }
-        carp "$prog not running but found pid ($pid)."
-          . "Perhaps the pid file (@{ [$self->pidfile] }) is stale?";
-        return 1;
-    }
-    return 0;
-}
+has is_daemon => (
+    isa     => 'Bool',
+    is      => 'rw',
+    default => sub { 0 },
+);
 
 sub daemonize {
     my ($self) = @_;
+    return if Proc::Daemon::Fork;
     Proc::Daemon::Init;
+    $self->is_daemon(1);
 }
 
 sub start {
     my ($self) = @_;
-    return if $self->check;
-
+    confess "instance already running" if $self->check;
     $self->daemonize unless $self->foreground;
+
+    return unless $self->is_daemon;
+
+    $self->pidfile->pid($$);
 
     # Avoid 'stdin reopened for output' warning with newer perls
     ## no critic
     open( NULL, '/dev/null' );
     <NULL> if (0);
     ## use critic
-    
+
     # Change to basedir
     chdir $self->basedir;
-    
+
     $self->save_pid;
     $self->setup_signals;
     return $$;
-}
-
-sub save_pid {
-    my ($self) = @_;
-    my $pidfile = $self->pidfile;
-    lock( $pidfile, undef, 'nonblocking' )
-      or croak "Could not lock PID file $pidfile: $!";
-    write_file( $pidfile, "$$\n" );
-    unlock($pidfile);
-    return;
-}
-
-sub remove_pid {
-    my ($self) = @_;
-    my $pidfile = $self->pidfile;
-    lock( $pidfile, undef, 'nonblocking' )
-      or croak "Could not lock PID file $pidfile: $!";
-    unlink($pidfile);
-    unlock($pidfile);
-    return;
-}
-
-sub get_pid {
-    my ($self) = @_;
-    my $pidfile = $self->pidfile;
-    return unless -e $pidfile;
-    chomp( my $pid = read_file($pidfile) );
-    return $pid;
 }
 
 sub stop {
@@ -135,7 +118,7 @@ sub stop {
 
 sub restart {
     my ($self) = @_;
-    $self->stop( noexit => 1 );
+    $self->stop( no_exit => 1 );
     $self->start();
 }
 
@@ -174,7 +157,7 @@ sub _kill {
 
     unless ( CORE::kill 0 => $pid or $!{EPERM} ) {    # IF it is still running
         CORE::kill( 9, $pid );                        # finally try SIGKILL
-        sleep(2) if CORE::kill( 0, $pid );
+        sleep(3) if CORE::kill( 0, $pid );
     }
 
     unless ( CORE::kill 0 => $pid or $!{EPERM} ) {    # IF it is still running
@@ -229,7 +212,7 @@ This module helps provide the basic infrastructure to do that.
 
 =item progname Str
 
-The name of our daemon, defaults to $0
+The name of our daemon, defaults to $self->meta->name =~ s/::/_/;
 
 =item pidbase Str
 
@@ -242,6 +225,10 @@ The file we store our PID in, defaults to /var/run/$progname/
 =item foreground Bool
 
 If true, the process won't background. Useful for debugging. This option can be set via Getopt's -f.
+
+=item is_daemon Bool
+
+If true, the process is the backgrounded process. This is useful for example in an after 'start' => sub { } block
 
 =back
 
@@ -314,7 +301,7 @@ The C<meta()> method from L<Class::MOP::Class>
     the module is part of the standard Perl distribution, part of the
     module's distribution, or must be installed separately. ]
 
-Obviously L<Moose>, also L<Carp>, L<Proc::Daemon>, L<File::Flock>, L<File::Slurp>
+Obviously L<Moose>, also L<Carp>, L<Proc::Daemon>, L<File::Pid>
 
 =head1 INCOMPATIBILITIES
 
@@ -353,6 +340,9 @@ L<Proc::Daemon>, L<Daemon::Generic>, L<MooseX::Getopt>
 
 Chris Prather  C<< <perigrin@cpan.org> >>
 
+=head1 THANKS
+
+Mike Boyko, Matt S. Trout, Stevan Little, Brandon Black, and the #moose denzians
 
 =head1 LICENCE AND COPYRIGHT
 

@@ -17,8 +17,8 @@ no_index:
     - t
 requires: 
   Carp: 0
-  File::Flock: 0
-  File::Slurp: 0
+  File::Pid: 0
   Moose: 0.2
+  MooseX::Getopt: 0
   Proc::Daemon: 0
-version: 0.01
+version: 0.02

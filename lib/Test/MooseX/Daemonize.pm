@@ -32,8 +32,8 @@ sub daemonize_ok {
     }
     else {
         sleep(1);    # Punt on sleep time, 1 seconds should be enough
-        $Test->ok( -e $daemon->pidfile, $msg )
-          || $Test->diag( 'Pidfile (' . $daemon->pidfile . ') not found.' );
+        $Test->ok( -e $daemon->pidfile->file, $msg )
+          || $Test->diag( 'Pidfile (' . $daemon->pidfile->file . ') not found.' );
     }
 }
 
