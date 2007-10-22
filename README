@@ -1,47 +1,154 @@
-MooseX-Daemonize version 0.0.1
-
-[ REPLACE THIS...
-
-  The README is used to introduce the module and provide instructions on
-  how to install the module, any machine dependencies it may have (for
-  example C compilers and installed libraries) and any other information
-  that should be understood before the module is installed.
-
-  A README file is required for CPAN modules since CPAN extracts the
-  README file from a module distribution so that people browsing the
-  archive can use it get an idea of the modules uses. It is usually a
-  good idea to provide version information here so that people can
-  decide whether fixes for the module are worth downloading.
-]
-
-
-INSTALLATION
-
-To install this module, run the following commands:
-
-    perl Makefile.PL
-    make
-    make test
-    make install
-
-
-Alternatively, to install with Module::Build, you can use the following commands:
-
-    perl Build.PL
-    ./Build
-    ./Build test
-    ./Build install
+MooseX::Daemonize(3)  User Contributed Perl Documentation MooseX::Daemonize(3)
 
 
 
-DEPENDENCIES
+NNAAMMEE
+       MooseX::Daemonize - provides a Role that daemonizes your Moose based
+       application.
 
-None.
+VVEERRSSIIOONN
+       This document describes MooseX::Daemonize version 0.0.1
+
+SSYYNNOOPPSSIISS
+           package FileMaker;
+           use Moose;
+           with qw(MooseX::Daemonize);
+
+           sub create_file {
+               my ( $self, $file ) = @_;
+               open( FILE, ">$file" ) || die;
+               close(FILE);
+           }
+
+           no Moose;
+
+           # then in the main package ...
+
+           my $daemon = FileMaker->new();
+           $daemon->start();
+           $daemon->create_file($file);
+           $daemon->stop();
+
+DDEESSCCRRIIPPTTIIOONN
+       Often you want to write a persistant daemon that has a pid file, and
+       responds appropriately to Signals.  This module helps provide the basic
+       infrastructure to do that.
+
+AATTTTRRIIBBUUTTEESS
+       progname Str
+           The name of our daemon, defaults to $self->meta->name =~ s/::/_/;
+
+       pidbase Str
+           The base for our bid, defaults to /var/run/$progname
+
+       pidfile Str
+           The file we store our PID in, defaults to /var/run/$progname/
+
+       foreground Bool
+           If true, the process won't background. Useful for debugging. This
+           option can be set via Getopt's -f.
+
+       is_daemon Bool
+           If true, the process is the backgrounded process. This is useful
+           for example in an after 'start' => sub { } block
+
+MMEETTHHOODDSS
+       _c_h_e_c_k_(_)
+           Check to see if an instance is already running.
+
+       _s_t_a_r_t_(_)
+           Setup a pidfile, fork, then setup the signal handlers.
+
+       _s_t_o_p_(_)
+           Stop the process matching the pidfile, and unlinks the pidfile.
+
+       _r_e_s_t_a_r_t_(_)
+           Litterally
+
+               $self->stop();
+               $self->start();
+
+       _d_a_e_m_o_n_i_z_e_(_)
+           Calls "Proc::Daemon::Init" to daemonize this process.
+
+       kill($pid)
+           Kills the process for $pid. This will try SIGINT, and SIGTERM
+           before falling back to SIGKILL and finally giving up.
+
+       _s_e_t_u_p___s_i_g_n_a_l_s_(_)
+           Setup the signal handlers, by default it only sets up handlers for
+           SIGINT and SIGHUP
+
+       _h_a_n_d_l_e___s_i_g_i_n_t_(_)
+           Handle a INT signal, by default calls "$self-"_s_t_o_p_(_)>
+
+       _h_a_n_d_l_e___s_i_g_h_u_p_(_)
+           Handle a HUP signal. By default calls "$self-"_r_e_s_t_a_r_t_(_)>
+
+       get_pid
+           Lookup the pid from our pidfile.
+
+       save_pid
+           Save the current pid in our pidfile
+
+       remove_pid
+           Delete our pidfile
+
+       _m_e_t_a_(_)
+           The "meta()" method from Class::MOP::Class
+
+DDEEPPEENNDDEENNCCIIEESS
+       Obviously Moose, also Carp, Proc::Daemon, File::Pid
+
+IINNCCOOMMPPAATTIIBBIILLIITTIIEESS
+       None reported.
+
+BBUUGGSS AANNDD LLIIMMIITTAATTIIOONNSS
+       No bugs have been reported.
+
+       Please report any bugs or feature requests to
+       "bug-acme-dahut-call@rt.cpan.org", or through the web interface at
+       <http://rt.cpan.org>.
+
+SSEEEE AALLSSOO
+       Proc::Daemon, Daemon::Generic, MooseX::Getopt
+
+AAUUTTHHOORR
+       Chris Prather  "<perigrin@cpan.org>"
+
+TTHHAANNKKSS
+       Mike Boyko, Matt S. Trout, Stevan Little, Brandon Black, dec, and the
+       #moose denzians
+
+LLIICCEENNCCEE AANNDD CCOOPPYYRRIIGGHHTT
+       Copyright (c) 2007, Chris Prather "<perigrin@cpan.org>". All rights
+       reserved.
+
+       This module is free software; you can redistribute it and/or modify it
+       under the same terms as Perl itself. See perlartistic.
+
+DDIISSCCLLAAIIMMEERR OOFF WWAARRRRAANNTTYY
+       BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+       FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT
+       WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER
+       PARTIES PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND,
+       EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+       WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE
+       ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE SOFTWARE IS WITH
+       YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL
+       NECESSARY SERVICING, REPAIR, OR CORRECTION.
+
+       IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+       WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+       REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE
+       TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR
+       CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE
+       SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
+       RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
+       FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
+       SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+       DAMAGES.
 
 
-COPYRIGHT AND LICENCE
 
-Copyright (C) 2007, Chris Prather
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
+perl v5.8.8                       2007-10-22              MooseX::Daemonize(3)

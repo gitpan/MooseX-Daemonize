@@ -2,6 +2,7 @@
 abstract: provides a Role that daemonizes your Moose based application.
 author: Chris Prather  C<< <perigrin@cpan.org> >>
 build_requires: 
+  File::Slurp: 0
   Test::More: 0
 distribution_type: module
 generated_by: Module::Install version 0.67
@@ -21,4 +22,4 @@ requires:
   Moose: 0.2
   MooseX::Getopt: 0
   Proc::Daemon: 0
-version: 0.02
+version: 0.03

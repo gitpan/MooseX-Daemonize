@@ -2,7 +2,7 @@ package MooseX::Daemonize;
 use strict;    # because Kwalitee is pedantic
 use Moose::Role;
 
-our $VERSION = 0.02;
+our $VERSION = 0.03;
 use Carp;
 use Proc::Daemon;
 
@@ -51,7 +51,8 @@ has pidfile => (
     predicate => 'has_pidfile',
     default   => sub {
         my $file = $_[0]->pidbase . '/' . $_[0]->progname . '.pid';
-        die "Cannot write to $file" unless (-e $file ? -w $file : -w $_[0]->pidbase);
+        die "Cannot write to $file"
+          unless ( -e $file ? -w $file : -w $_[0]->pidbase );
         File::Pid->new( { file => $file } );
     },
     handles => {
@@ -342,7 +343,7 @@ Chris Prather  C<< <perigrin@cpan.org> >>
 
 =head1 THANKS
 
-Mike Boyko, Matt S. Trout, Stevan Little, Brandon Black, and the #moose denzians
+Mike Boyko, Matt S. Trout, Stevan Little, Brandon Black, dec, and the #moose denzians
 
 =head1 LICENCE AND COPYRIGHT
 
