@@ -1,5 +1,8 @@
 Revision history for MooseX-Daemonize
 
+0.04 2007-11-11
+	- Fix stupid perlcritic.t cause the Module::Starter::PBP tests were stupid but I didn't realize it.
+
 0.03 2007-10-22
 	- Add File::Slurp to dependencies so our tests pass better
 

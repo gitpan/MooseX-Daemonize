@@ -2,7 +2,7 @@ package MooseX::Daemonize;
 use strict;    # because Kwalitee is pedantic
 use Moose::Role;
 
-our $VERSION = 0.03;
+our $VERSION = 0.04;
 use Carp;
 use Proc::Daemon;
 
@@ -178,7 +178,7 @@ MooseX::Daemonize - provides a Role that daemonizes your Moose based application
 
 =head1 VERSION
 
-This document describes MooseX::Daemonize version 0.0.1
+This document describes MooseX::Daemonize version 0.04
 
 
 =head1 SYNOPSIS
