@@ -1,4 +1,5 @@
 # Load the Module::Install bundled in ./inc/
+require 5.008;
 use inc::Module::Install;
 
 # Define metadata
