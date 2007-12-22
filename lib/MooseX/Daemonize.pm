@@ -1,159 +1,253 @@
 package MooseX::Daemonize;
 use strict;    # because Kwalitee is pedantic
 use Moose::Role;
+use MooseX::Types::Path::Class;
 
-our $VERSION = 0.05;
-use Carp;
-use Proc::Daemon;
+our $VERSION = 0.06;
 
-use File::Pid;
-use Moose::Util::TypeConstraints;
-
-with qw(MooseX::Getopt);
+with 'MooseX::Daemonize::WithPidFile',
+     'MooseX::Getopt';
+     
+use constant OK    => 0;
+use constant ERROR => 1;
 
 has progname => (
-    isa      => 'Str',
-    is       => 'ro',
-    lazy     => 1,
-    required => 1,
-    default  => sub {
+    metaclass => 'Getopt',
+    isa       => 'Str',
+    is        => 'ro',
+    lazy      => 1,
+    required  => 1,
+    default   => sub {
         ( my $name = lc $_[0]->meta->name ) =~ s/::/_/g;
         return $name;
     },
 );
 
-has basedir => (
-    isa      => 'Str',
-    is       => 'ro',
-    required => 1,
-    lazy     => 1,
-    default  => sub { return '/' },
-);
-
 has pidbase => (
-    isa      => 'Str',
-    is       => 'ro',
-    lazy     => 1,
-    required => 1,
-    default  => sub { return '/var/run' },
+    metaclass => 'Getopt',
+    isa       => 'Path::Class::Dir',
+    is        => 'ro',
+    coerce    => 1,
+    required  => 1,
+    lazy      => 1,
+    default   => sub { Path::Class::Dir->new('var', 'run') },
 );
 
-subtype 'Pidfile' => as 'Object' => where { $_->isa('File::Pid') };
-
-coerce 'Pidfile' => from 'Str' => via { File::Pid->new( { file => $_, } ); };
-
-has pidfile => (
-    isa       => 'Pidfile',
-    is        => 'rw',
-    lazy      => 1,
-    required  => 1,
+has basedir => (
+    metaclass => 'Getopt',
+    isa       => 'Path::Class::Dir',
+    is        => 'ro',
     coerce    => 1,
-    predicate => 'has_pidfile',
-    default   => sub {
-        my $file = $_[0]->pidbase . '/' . $_[0]->progname . '.pid';
-        die "Cannot write to $file"
-          unless ( -e $file ? -w $file : -w $_[0]->pidbase );
-        File::Pid->new( { file => $file } );
-    },
-    handles => {
-        check      => 'running',
-        save_pid   => 'write',
-        remove_pid => 'remove',
-        get_pid    => 'pid',
-        _pidfile   => 'file',
-    },
+    required  => 1,
+    lazy      => 1,
+    default   => sub { Path::Class::Dir->new('/') },
 );
 
 has foreground => (
-    metaclass   => 'MooseX::Getopt::Meta::Attribute',
+    metaclass   => 'Getopt',
     cmd_aliases => 'f',
     isa         => 'Bool',
     is          => 'ro',
     default     => sub { 0 },
 );
 
-has is_daemon => (
-    isa     => 'Bool',
-    is      => 'rw',
-    default => sub { 0 },
-);
-
 has stop_timeout => (
-    isa     => 'Int',
-    is      => 'rw',
-    default => 2
+    metaclass => 'Getopt',
+    isa       => 'Int',
+    is        => 'rw',
+    default   => sub { 2 }
 );
 
-sub daemonize {
-    my ($self) = @_;
-    return if Proc::Daemon::Fork;
-    Proc::Daemon::Init;
-    $self->is_daemon(1);
+# internal book-keeping
+
+has status_message => (
+    metaclass => 'NoGetopt',
+    isa       => 'Str',
+    is        => 'rw',
+    clearer   => 'clear_status_message',
+);
+
+has exit_code => (
+    metaclass => 'NoGetopt',
+    isa       => 'Int',
+    is        => 'rw',
+    clearer   => 'clear_exit_code',
+);
+
+# methods ...
+
+## PID file related stuff ...
+
+sub init_pidfile {
+    my $self = shift;
+    my $file = $self->pidbase . '/' . $self->progname . '.pid';
+    confess "Cannot write to $file" unless (-e $file ? -w $file : -w $self->pidbase);
+    MooseX::Daemonize::Pid::File->new( file => $file );
 }
 
-sub start {
-    my ($self) = @_;
-    confess "instance already running" if $self->check;
-    $self->daemonize unless $self->foreground;
+# backwards compat,
+sub check      { (shift)->pidfile->is_running }
+sub save_pid   { (shift)->pidfile->write      }
+sub remove_pid { (shift)->pidfile->remove     }
+sub get_pid    { (shift)->pidfile->pid        }
 
-    return unless $self->is_daemon;
+## signal handling ...
+
+sub setup_signals {
+    my $self = shift;
+    $SIG{'INT'} = sub { $self->shutdown };
+# I can't think of a sane default here really ...
+#    $SIG{'HUP'} = sub { $self->handle_sighup };
+}
+
+sub shutdown {
+    my $self = shift;
+    $self->pidfile->remove if $self->pidfile->pid == $$;
+    exit(0);
+}
+
+## daemon control methods ...
+
+sub start {
+    my $self = shift;
+
+    $self->clear_status_message;
+    $self->clear_exit_code;
+
+    if ($self->pidfile->is_running) {
+        $self->exit_code(OK);
+        $self->status_message('Daemon is already running with pid (' . $self->pidfile->pid . ')');        
+        return !($self->exit_code);
+    }
+    
+    if ($self->foreground) { 
+        $self->is_daemon(1);
+    }
+    else {      
+        eval { $self->daemonize };              
+        if ($@) {
+            $self->exit_code(ERROR);
+            $self->status_message('Start failed : ' . $@);
+            return !($self->exit_code);
+        }
+    }
+
+    unless ($self->is_daemon) {
+        $self->exit_code(OK);        
+        $self->status_message('Start succeeded');
+        return !($self->exit_code);
+    }
 
     $self->pidfile->pid($$);
-
-    # Avoid 'stdin reopened for output' warning with newer perls
-    ## no critic
-    open( NULL, '/dev/null' );
-    <NULL> if (0);
-    ## use critic
 
     # Change to basedir
     chdir $self->basedir;
 
-    $self->save_pid;
+    $self->pidfile->write;
     $self->setup_signals;
     return $$;
+}
+
+sub status {
+    my $self = shift;
+
+    $self->clear_status_message;
+    $self->clear_exit_code;
+
+    if ($self->pidfile->is_running) {
+        $self->exit_code(OK);        
+        $self->status_message('Daemon is running with pid (' . $self->pidfile->pid . ')');    
+    }
+    else {            
+        $self->exit_code(ERROR);
+        $self->status_message('Daemon is not running with pid (' . $self->pidfile->pid . ')');
+    }
+
+    return !($self->exit_code);
+}
+
+sub restart {
+    my $self = shift;
+
+    $self->clear_status_message;
+    $self->clear_exit_code;
+
+    unless ($self->stop) {
+        $self->exit_code(ERROR);
+        $self->status_message('Restart (Stop) failed : ' . $@);
+    }
+
+    unless ($self->start) {
+        $self->exit_code(ERROR);
+        $self->status_message('Restart (Start) failed : ' . $@);
+    }
+
+    if ($self->exit_code == OK) {
+        $self->exit_code(OK);
+        $self->status_message("Restart successful");
+    }
+
+    return !($self->exit_code);
 }
 
 # Make _kill *really* private
 my $_kill;
 
 sub stop {
-    my ( $self, %args ) = @_;
-    my $pid = $self->get_pid;
-    $self->$_kill($pid) unless $self->foreground();
-    $self->remove_pid;
-    return 1 if $args{no_exit};
-    exit;
-}
+    my $self = shift;
 
-sub restart {
-    my ($self) = @_;
-    $self->stop( no_exit => 1 );
-    $self->start();
-}
+    $self->clear_status_message;
+    $self->clear_exit_code;
 
-sub setup_signals {
-    my ($self) = @_;
-    $SIG{INT} = sub { $self->handle_sigint; };
-    $SIG{HUP} = sub { $self->handle_sighup };
-}
+    # if the pid is not running
+    # then we dont need to stop
+    # anything ...
+    if ($self->pidfile->is_running) {
 
-sub handle_sigint { $_[0]->stop; }
-sub handle_sighup { $_[0]->restart; }
+        # if we are foreground, then
+        # no need to try and kill
+        # ourselves
+        unless ($self->foreground) {
+
+            # kill the process ...
+            eval { $self->$_kill($self->pidfile->pid) };
+            # and complain if we can't ...
+            if ($@) {
+                $self->exit_code(ERROR);
+                $self->status_message('Stop failed : ' . $@);
+            }
+            # or gloat if we succeed ..
+            else {
+                $self->exit_code(OK);
+                $self->status_message('Stop succeeded');
+            }
+
+        }
+    }
+    else {
+        # this just returns the OK
+        # exit code for now, but
+        # we should make this overridable
+        $self->exit_code(OK);        
+        $self->status_message("Not running");
+    }
+
+    # if we are returning to our script
+    # then we actually need the opposite
+    # of what the system/OS expects
+    return !($self->exit_code);
+}
 
 $_kill = sub {
     my ( $self, $pid ) = @_;
     return unless $pid;
     unless ( CORE::kill 0 => $pid ) {
-
         # warn "$pid already appears dead.";
         return;
     }
 
     if ( $pid eq $$ ) {
-
-        # warn "$pid is us! Can't commit suicide.";
-        return;
+        die "$pid is us! Can't commit suicide.";
     }
 
     my $timeout = $self->stop_timeout;
@@ -162,149 +256,229 @@ $_kill = sub {
     # $!{EPERM} could also be true if we cant kill it (permission error)
 
     # Try SIGINT ... 2s ... SIGTERM ... 2s ... SIGKILL ... 3s ... UNDEAD!
+    my $terminating_signal;
     for ( [ 2, $timeout ], [15, $timeout], [9, $timeout * 1.5] ) {
-      my ($signal, $timeout) = @$_;
-      $timeout = int $timeout;
+        my ($signal, $timeout) = @$_;
+        $timeout = int $timeout;
 
-      CORE::kill($signal, $pid);
+        CORE::kill($signal, $pid);
 
-      last unless CORE::kill 0 => $pid or $!{EPERM};
+        while ($timeout) {
+            unless(CORE::kill 0 => $pid or $!{EPERM}) {
+                $terminating_signal = $signal;
+                last;
+            }
+            $timeout--;
+            sleep(1) if $timeout;
+        }
 
-      while ($timeout) {
-        sleep(1);
-        last unless CORE::kill 0 => $pid or $!{EPERM};
-        $timeout--;
-      }
+        last if $terminating_signal;
     }
 
-    return unless ( CORE::kill 0 => $pid or $!{EPERM} );
+    if($terminating_signal) {
+        if($terminating_signal == 9) {
+            # clean up the pidfile ourselves iff we used -9 and it worked
+            warn "Had to resort to 'kill -9' and it worked, wiping pidfile";
+            eval { $self->pidfile->remove };
+            if ($@) {
+                warn "Could not remove pidfile ("
+                   . $self->pidfile->file
+                   . ") because : $!";
+            }
+        }
+        return;
+    }
 
     # IF it is still running
-    carp "$pid doesn't seem to want to die.";     # AHH EVIL DEAD!
+    Carp::carp "$pid doesn't seem to want to die.";     # AHH EVIL DEAD!
 };
 
 1;
 __END__
 
+=pod
+
 =head1 NAME
 
-MooseX::Daemonize - provides a Role that daemonizes your Moose based 
-application.
+MooseX::Daemonize - Role for daemonizing your Moose based application
 
 =head1 VERSION
 
-This document describes MooseX::Daemonize version 0.04
+This document describes MooseX::Daemonize version 0.05
 
 =head1 SYNOPSIS
 
-    package FileMaker;
+    package My::Daemon;
     use Moose;
+
     with qw(MooseX::Daemonize);
 
-    sub create_file {
-        my ( $self, $file ) = @_;
-        open( FILE, ">$file" ) || die;
-        close(FILE);
-    }
+    # ... define your class ....
 
-    no Moose;
+    after start => sub {
+        my $self = shift;
+        return unless $self->is_daemon;
+        # your daemon code here ...
+    };
 
-    # then in the main package ... 
-    
-    my $daemon = FileMaker->new();
-    $daemon->start();
-    $daemon->create_file($file);
-    $daemon->stop();
-     
+    # then in your script ...
+
+    my $daemon = My::Daemon->new_with_options();
+
+    my ($command) = @{$daemon->extra_argv}
+    defined $command || die "No command specified";
+
+    $daemon->start   if $command eq 'start';
+    $daemon->status  if $command eq 'status';
+    $daemon->restart if $command eq 'restart';
+    $daemon->stop    if $command eq 'stop';
+
+    warn($daemon->status_message);
+    exit($daemon->exit_code);
+
 =head1 DESCRIPTION
 
 Often you want to write a persistant daemon that has a pid file, and responds
-appropriately to Signals.  This module helps provide the basic infrastructure
-to do that.
+appropriately to Signals. This module provides a set of basic roles as an
+infrastructure to do that.
 
 =head1 ATTRIBUTES
 
+This list includes attributes brought in from other roles as well
+we include them here for ease of documentation. All of these attributes
+are settable though L<MooseX::Getopt>'s command line handling, with the
+exception of C<is_daemon>.
+
 =over
 
-=item progname Str
+=item I<progname Path::Class::Dir | Str>
 
-The name of our daemon, defaults to $self->meta->name =~ s/::/_/;
+The name of our daemon, defaults to C<$package_name =~ s/::/_/>;
 
-=item pidbase Str
+=item I<pidbase Path::Class::Dir | Str>
 
-The base for our bid, defaults to /var/run/$progname
+The base for our bid, defaults to C</var/run/$progname>
 
-=item pidfile Str
+=item I<pidfile MooseX::Daemonize::Pid::File | Str>
 
-The file we store our PID in, defaults to /var/run/$progname/ 
+The file we store our PID in, defaults to C</var/run/$progname>
 
-=item foreground Bool
+=item I<foreground Bool>
 
-If true, the process won't background. Useful for debugging. This option can 
+If true, the process won't background. Useful for debugging. This option can
 be set via Getopt's -f.
 
-=item is_daemon Bool
+=item I<is_daemon Bool>
 
-If true, the process is the backgrounded process. This is useful for example
-in an after 'start' => sub { } block
+If true, the process is the backgrounded daemon process, if false it is the
+parent process. This is useful for example in an C<after 'start' => sub { }>
+block.
 
-=item stop_timeout
+B<NOTE:> This option is explicitly B<not> available through L<MooseX::Getopt>.
+
+=item I<stop_timeout>
 
 Number of seconds to wait for the process to stop, before trying harder to kill
-it. Defaults to 2 seconds
+it. Defaults to 2 seconds.
 
 =back
 
-=head1 METHODS 
+These are the internal attributes, which are not available through MooseX::Getopt.
 
-=over
+=over 4
 
-=item check()
+=item I<exit_code Int>
 
-Check to see if an instance is already running.
+=item I<status_message Str>
 
-=item start()
+=back
+
+=head1 METHODS
+
+=head2 Daemon Control Methods
+
+These methods can be used to control the daemon behavior. Every effort
+has been made to have these methods DWIM (Do What I Mean), so that you
+can focus on just writing the code for your daemon.
+
+Extending these methods is best done with the L<Moose> method modifiers,
+such as C<before>, C<after> and C<around>.
+
+=over 4
+
+=item B<start>
 
 Setup a pidfile, fork, then setup the signal handlers.
 
-=item stop()
+=item B<stop>
 
 Stop the process matching the pidfile, and unlinks the pidfile.
 
-=item restart()
+=item B<restart>
 
-Litterally 
+Literally this is:
 
     $self->stop();
     $self->start();
 
-=item daemonize()
+=item B<status>
 
-Calls C<Proc::Daemon::Init> to daemonize this process. 
+=item B<shutdown>
 
-=item setup_signals()
+=back
 
-Setup the signal handlers, by default it only sets up handlers for SIGINT and SIGHUP
 
-=item handle_sigint()
+=head2 Pidfile Handling Methods
+
+=over 4
+
+=item B<init_pidfile>
+
+This method will create a L<MooseX::Daemonize::Pid::File> object and tell
+it to store the PID in the file C<$pidbase/$progname.pid>.
+
+=item B<check>
+
+This checks to see if the daemon process is currently running by checking
+the pidfile.
+
+=item B<get_pid>
+
+Returns the PID of the daemon process.
+
+=item B<save_pid>
+
+Write the pidfile.
+
+=item B<remove_pid>
+
+Removes the pidfile.
+
+=back
+
+=head2 Signal Handling Methods
+
+=over 4
+
+=item B<setup_signals>
+
+Setup the signal handlers, by default it only sets up handlers for SIGINT and
+SIGHUP. If you wish to add more signals just use the C<after> method modifier
+and add them.
+
+=item B<handle_sigint>
 
 Handle a INT signal, by default calls C<$self->stop()>
 
-=item handle_sighup()
+=item B<handle_sighup>
 
 Handle a HUP signal. By default calls C<$self->restart()>
 
-=item get_pid
+=back
 
-Lookup the pid from our pidfile.
+=head2 Introspection
 
-=item save_pid
-
-Save the current pid in our pidfile
-
-=item remove_pid
-
-Delete our pidfile
+=over 4
 
 =item meta()
 
@@ -314,36 +488,13 @@ The C<meta()> method from L<Class::MOP::Class>
 
 =head1 DEPENDENCIES
 
-=for author to fill in:
-    A list of all the other modules that this module relies upon,
-    including any restrictions on versions, and an indication whether
-    the module is part of the standard Perl distribution, part of the
-    module's distribution, or must be installed separately. ]
-
-Obviously L<Moose>, also L<Carp>, L<Proc::Daemon>, L<File::Pid>
+L<Moose>, L<MooseX::Getopt>, L<MooseX::Types::Path::Class> and L<POSIX>
 
 =head1 INCOMPATIBILITIES
 
-=for author to fill in:
-    A list of any modules that this module cannot be used in conjunction
-    with. This may be due to name conflicts in the interface, or
-    competition for system or program resources, or due to internal
-    limitations of Perl (for example, many modules that use source code
-    filters are mutually incompatible).
-
-None reported.
-
+None reported. Although obviously this will not work on Windows.
 
 =head1 BUGS AND LIMITATIONS
-
-=for author to fill in:
-    A list of known problems with the module, together with some
-    indication Whether they are likely to be fixed in an upcoming
-    release. Also a list of restrictions on the features the module
-    does provide: data types that cannot be handled, performance issues
-    and the circumstances in which they may arise, practical
-    limitations on the size of data sets, special cases that are not
-    (yet) handled, etc.
 
 No bugs have been reported.
 
@@ -353,27 +504,28 @@ L<http://rt.cpan.org>.
 
 =head1 SEE ALSO
 
-L<Proc::Daemon>, L<Daemon::Generic>, L<MooseX::Getopt>
+L<Proc::Daemon>, L<Daemon::Generic>
 
-=head1 AUTHOR
+=head1 AUTHORS
 
 Chris Prather  C<< <perigrin@cpan.org> >>
 
+Stevan Little  C<< <stevan.little@iinteractive.com> >>
+
 =head1 THANKS
 
-Mike Boyko, Matt S. Trout, Stevan Little, Brandon Black, Ash Berlin and the 
+Mike Boyko, Matt S. Trout, Stevan Little, Brandon Black, Ash Berlin and the
 #moose denzians
 
 Some bug fixes sponsored by Takkle Inc.
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2007, Chris Prather C<< <perigrin@cpan.org> >>. All rights 
+Copyright (c) 2007, Chris Prather C<< <perigrin@cpan.org> >>. All rights
 reserved.
 
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself. See L<perlartistic>.
-
 
 =head1 DISCLAIMER OF WARRANTY
 
@@ -397,3 +549,5 @@ RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
 FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
 SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGES.
+
+=cut

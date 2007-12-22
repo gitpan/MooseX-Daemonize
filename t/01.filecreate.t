@@ -1,10 +1,23 @@
-use Test::More tests => 4;
-use Test::MooseX::Daemonize;
-use MooseX::Daemonize;
+#!/usr/bin/perl
 
-##  Since a daemon will not be able to print terminal output, we
-##  have a test daemon create a file, and another process test for
-##  its existence.
+use strict;
+use warnings;
+use Cwd;
+use File::Spec::Functions;
+
+use Test::More tests => 29;
+use Test::Moose;
+
+BEGIN {
+    use_ok('MooseX::Daemonize');
+}
+
+use constant DEBUG => 0;
+
+my $CWD                = Cwd::cwd;
+my $FILENAME           = "$CWD/im_alive";
+$ENV{MX_DAEMON_STDOUT} = catfile($CWD, 'Out.txt');
+$ENV{MX_DAEMON_STDERR} = catfile($CWD, 'Err.txt');
 
 {
 
@@ -13,32 +26,86 @@ use MooseX::Daemonize;
     with qw(MooseX::Daemonize);
 
     has filename => ( isa => 'Str', is => 'ro' );
-    after start => sub { $_[0]->create_file( $_[0]->filename ) };
+    
+    after start => sub { 
+        my $self = shift;
+        if ($self->is_daemon) {
+            $self->create_file( $self->filename );
+        }
+    };
 
     sub create_file {
         my ( $self, $file ) = @_;
         open( my $FILE, ">$file" ) || die $!;
         close($FILE);
     }
-
-    no Moose;
 }
 
-package main;
-use strict;
-use warnings;
-use Cwd;
-
-## Try to make sure we are in the test directory
-chdir 't' if ( Cwd::cwd() !~ m|/t$| );
-my $cwd = Cwd::cwd();
-
 my $app = FileMaker->new(
-    pidbase  => $cwd,
-    filename => "$cwd/im_alive",
+    pidbase  => $CWD,
+    filename => $FILENAME,
 );
-daemonize_ok( $app, 'child forked okay' );
+isa_ok($app, 'FileMaker');
+does_ok($app, 'MooseX::Daemonize');
+does_ok($app, 'MooseX::Daemonize::WithPidFile');
+does_ok($app, 'MooseX::Daemonize::Core');
+
+isa_ok($app->pidfile, 'MooseX::Daemonize::Pid::File');
+
+is($app->pidfile->file, "$CWD/filemaker.pid", '... got the right PID file path');
+ok(not(-e $app->pidfile->file), '... our pidfile does not exist');
+
+ok(!$app->status, '... the daemon is running');
+is($app->exit_code, MooseX::Daemonize->ERROR, '... got the right error code');
+
+ok($app->stop, '... the app will stop cause its not running');
+is($app->status_message, "Not running", '... got the correct status message');
+is($app->exit_code, MooseX::Daemonize->OK, '... got the right error code');
+
+diag $$ if DEBUG;
+
+ok($app->start, '... daemon started');
+is($app->status_message, "Start succeeded", '... got the correct status message');
+is($app->exit_code, MooseX::Daemonize->OK, '... got the right error code');
+
+sleep(1); # give it a second ...
+
+ok(-e $app->pidfile->file, '... our pidfile exists' );
+
+my $pid = $app->pidfile->pid;
+isnt($pid, $$, '... the pid in our pidfile is correct (and not us)');
+
+ok($app->status, '... the daemon is running');
+is($app->status_message, "Daemon is running with pid ($pid)", '... got the correct status message');
+is($app->exit_code, MooseX::Daemonize->OK, '... got the right error code');
+
+if (DEBUG) {
+    diag `ps $pid`;
+    diag "Status is: " . $app->status_message;    
+}
+
 ok( -e $app->filename, "file exists" );
-ok( $app->stop( no_exit => 1 ), 'app stopped' );
-ok( not(-e $app->pidfile) , 'pidfile gone' );
-unlink( $app->filename );
+
+if (DEBUG) {
+    diag `ps $pid`;
+    diag "Status is: " . $app->status_message;    
+}
+
+ok( $app->stop, '... app stopped' );
+is($app->status_message, "Stop succeeded", '... got the correct status message');
+is($app->exit_code, MooseX::Daemonize->OK, '... got the right error code');
+
+ok(!$app->status, '... the daemon is no longer running');
+is($app->status_message, "Daemon is not running with pid ($pid)", '... got the correct status message');
+is($app->exit_code, MooseX::Daemonize->ERROR, '... got the right error code');
+
+if (DEBUG) {
+    diag `ps $pid`;
+    diag "Status is: " . $app->status_message;    
+}
+
+ok( not(-e $app->pidfile->file) , '... pidfile gone' );
+
+unlink $FILENAME;
+unlink $ENV{MX_DAEMON_STDOUT};
+unlink $ENV{MX_DAEMON_STDERR};

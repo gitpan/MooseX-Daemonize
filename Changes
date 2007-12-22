@@ -1,19 +1,56 @@
 Revision history for MooseX-Daemonize
 
+0.06 Fri. Dec. 21, 2007
+    * MooseX::Daemonize
+      - Fix logic that kills process so it doens't always warn 
+        about undead process
+      - Added stop_timeout to allow user to control timings.
+      - Refactored to roles
+        - removed Proc::Daemon dependency
+        - removed File::Pid dependency
+      - added exit_code and status_message to capture the 
+        exit code and a status message :)
+        - refactored start/stop/restart to use these
+        - added tests for this
+      - added a &status command which returns a bool telling
+        you if the daemon is running or not
+        - added tests for this
+      
+    * Test::MooseX::Daemonize
+      - updated docs 
+      - removed Proc::Daemon dependency
+
+    * MooseX::Daemonize::Core
+      - the core daemonization methods are here
+        - added tests for this
+
+    * MooseX::Daemonize::WithPidFile
+      - the PID file handling is added to the core here
+        - added tests for this
+
+    * MooseX::Daemonize::Pid
+      - added this package to replace the File::Pid stuff
+      
+    * MooseX::Daemonize::Pid::File
+      - added this package to replace the File::Pid stuff, it is a subclass
+        of MooseX::Daemonize::Pid (stevan)
+        - added tests for this (stevan)
+
 0.05 2007-11-18
-    - Fix logic that kills process so it doens't always warn about undead 
-      process (ash)
-    - Added stop_timeout to allow user to control timings. (ash)
+    - Fix logic that kills process so it doens't always warn 
+      about undead process
+    - Added stop_timeout to allow user to control timings.
 
 0.04 2007-11-11
-    - Fix stupid perlcritic.t cause the Module::Starter::PBP tests were stupid but I didn't realize it.
+    - Fix stupid perlcritic.t cause the Module::Starter::PBP tests were 
+      stupid but I didn't realize it.
 
 0.03 2007-10-22
     - Add File::Slurp to dependencies so our tests pass better
 
 0.02 Sept 19, 2007
-    - Fixed bug where sometimes the pidfile is writeable but pidbase is not --  reported by dec 
-    - Fixed bug where the pidfile wasn't being updated properly --  reported by dec 
+    - Fixed bug where sometimes the pidfile is writeable but pidbase is not -- reported by dec 
+    - Fixed bug where the pidfile wasn't being updated properly -- reported by dec 
     - Added is_daemon attribute
     - Added another fork to make sure we short circuit out of the daemonize process properly
     - Switch to File::Pid
