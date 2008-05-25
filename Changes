@@ -1,5 +1,17 @@
 Revision history for MooseX-Daemonize
 
+0.07 Saturday, May 24, 2008
+    * MooseX::Daemonize
+      - Made default pidbase '/var/run' rather 
+        than './var/run'
+      
+    * t/
+      - Small fixups to pidfile testing in 
+        t/31.with_pid_file_and_poe.t
+
+    ~ Removed the Build.PL since Module::Install
+      has removed their support
+
 0.06 Fri. Dec. 21, 2007
     * MooseX::Daemonize
       - Fix logic that kills process so it doens't always warn 
