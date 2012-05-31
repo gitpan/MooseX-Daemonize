@@ -27,4 +27,4 @@ requires:
   MooseX::Types::Path::Class: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.14
+version: 0.15

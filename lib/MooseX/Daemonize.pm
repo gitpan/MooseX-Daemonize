@@ -4,7 +4,7 @@ use Moose::Role;
 use MooseX::Types::Path::Class;
 use File::Path qw(make_path);
 
-our $VERSION   = '0.14';
+our $VERSION   = '0.15';
 
 with 'MooseX::Daemonize::WithPidFile',
      'MooseX::Getopt';
@@ -314,7 +314,7 @@ MooseX::Daemonize - Role for daemonizing your Moose based application
 
 =head1 VERSION
 
-This document describes MooseX::Daemonize version 0.05
+This document describes MooseX::Daemonize version 0.15
 
 =head1 WARNING
 
