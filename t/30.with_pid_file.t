@@ -1,12 +1,10 @@
-#!/usr/bin/perl
-
 use strict;
 use warnings;
 
 use File::Spec::Functions;
 
-use Test::More 'no_plan';
-use Test::Exception;
+use Test::More;
+use Test::Fatal;
 use Test::Moose;
 use File::Temp qw(tempdir);
 
@@ -73,9 +71,11 @@ ok($d->has_pidfile, '... we have a pidfile value');
 
 ok(!(-e $PIDFILE), '... the PID file does not exist yet');
 
-lives_ok {
-    $d->start;
-} '... successfully daemonized from (' . $$ . ')';
+is(
+    exception { $d->start },
+    undef,
+    '... successfully daemonized from (' . $$ . ')',
+);
 
 my $p = $d->pidfile;
 isa_ok($p, 'MooseX::Daemonize::Pid::File');
@@ -108,3 +108,6 @@ ok(!(-e $PIDFILE), '... the PID file has been removed');
 
 unlink $ENV{MX_DAEMON_STDOUT};
 unlink $ENV{MX_DAEMON_STDERR};
+
+done_testing;
+

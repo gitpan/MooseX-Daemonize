@@ -1,10 +1,8 @@
-#!/usr/bin/perl
-
 use strict;
 use warnings;
 
-use Test::More 'no_plan';
-use Test::Exception;
+use Test::More;
+use Test::Fatal;
 use Test::Moose;
 use File::Temp qw(tempdir);
 use File::Spec::Functions;
@@ -68,9 +66,11 @@ my $d = MyFooDaemon->new;
 isa_ok($d, 'MyFooDaemon');
 does_ok($d, 'MooseX::Daemonize::Core');
 
-lives_ok {
-    $d->start;
-} '... successfully daemonized from (' . $$ . ')';
+is(
+    exception { $d->start },
+    undef,
+    '... successfully daemonized from (' . $$ . ')',
+);
 
 my $p = $d->daemon_pid;
 isa_ok($p, 'MooseX::Daemonize::Pid');
@@ -99,4 +99,5 @@ ok(!$p->is_running, '... the daemon process is no longer running (' . $p->pid . 
 unlink $ENV{MX_DAEMON_STDOUT};
 unlink $ENV{MX_DAEMON_STDERR};
 
+done_testing;
 

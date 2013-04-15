@@ -4,7 +4,7 @@
       "Chris Prather  C<< <chris@prather.org >>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "ExtUtils::MakeMaker version 6.62, CPAN::Meta::Converter version 2.120351",
+   "generated_by" : "Module::Install version 1.06, CPAN::Meta::Converter version 2.130880",
    "license" : [
       "perl_5"
    ],
@@ -15,25 +15,28 @@
    "name" : "MooseX-Daemonize",
    "no_index" : {
       "directory" : [
-         "t",
-         "inc"
+         "examples",
+         "inc",
+         "t"
       ]
    },
    "prereqs" : {
       "build" : {
          "requires" : {
             "ExtUtils::MakeMaker" : "6.36",
+            "Test::Fatal" : "0",
             "Test::Moose" : "0",
-            "Test::More" : "0"
+            "Test::More" : "0.88"
          }
       },
       "configure" : {
          "requires" : {
-            "ExtUtils::MakeMaker" : "0"
+            "ExtUtils::MakeMaker" : "6.36"
          }
       },
       "runtime" : {
          "requires" : {
+            "File::Path" : "2.08",
             "Moose" : "0.33",
             "MooseX::Getopt" : "0.07",
             "MooseX::Types::Path::Class" : "0"
@@ -41,5 +44,14 @@
       }
    },
    "release_status" : "stable",
-   "version" : "0.15"
+   "resources" : {
+      "license" : [
+         "http://dev.perl.org/licenses/"
+      ],
+      "repository" : {
+         "type" : "git",
+         "url" : "git://git.moose.perl.org/MooseX-Daemonize.git"
+      }
+   },
+   "version" : "0.16"
 }
