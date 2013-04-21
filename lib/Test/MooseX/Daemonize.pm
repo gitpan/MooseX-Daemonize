@@ -1,7 +1,9 @@
 package Test::MooseX::Daemonize;
+{
+  $Test::MooseX::Daemonize::VERSION = '0.17';
+}
 use strict;
 
-our $VERSION   = '0.16';
 our $AUTHORITY = 'cpan:PERIGRIN';
 
 # BEGIN CARGO CULTING
@@ -67,6 +69,9 @@ sub check_test_output {
 }
 
 package Test::MooseX::Daemonize::Testable;
+{
+  $Test::MooseX::Daemonize::Testable::VERSION = '0.17';
+}
 use Moose::Role;
 
 has test_output => (
@@ -99,10 +104,6 @@ __END__
 =head1 NAME
 
 Test::MooseX::Daemonize - Tool to help test MooseX::Daemonize applications
-
-=head1 VERSION
-
-This document describes MooseX::Daemonize version 0.0.1
 
 =head1 SYNOPSIS
 

@@ -1,10 +1,14 @@
 package MooseX::Daemonize;
+{
+  $MooseX::Daemonize::VERSION = '0.17';
+}
+BEGIN {
+  $MooseX::Daemonize::AUTHORITY = 'cpan:PERIGRIN';
+}
 use strict;    # because Kwalitee is pedantic
 use Moose::Role;
 use MooseX::Types::Path::Class;
 use File::Path qw(make_path);
-
-our $VERSION   = '0.16';
 
 with 'MooseX::Daemonize::WithPidFile',
      'MooseX::Getopt';
@@ -316,10 +320,6 @@ __END__
 =head1 NAME
 
 MooseX::Daemonize - Role for daemonizing your Moose based application
-
-=head1 VERSION
-
-This document describes MooseX::Daemonize version 0.15
 
 =head1 WARNING
 

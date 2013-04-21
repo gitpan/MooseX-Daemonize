@@ -1,4 +1,7 @@
 package MooseX::Daemonize::Pid::File;
+BEGIN {
+  $MooseX::Daemonize::Pid::File::AUTHORITY = 'cpan:PERIGRIN';
+}
 use strict;    # because Kwalitee is pedantic
 use Moose;
 use Moose::Util::TypeConstraints;

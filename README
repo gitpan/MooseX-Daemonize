@@ -1,23 +1,13 @@
-MooseX-Daemonize version 0.13
 
-INSTALLATION
 
-To install this module, run the following commands:
+This archive contains the distribution MooseX-Daemonize,
+version 0.17:
 
-    perl Makefile.PL
-    make
-    make test
-    make install
+  Role for daemonizing your Moose based application
 
-DEPENDENCIES
+This software is copyright (c) 2013 by Chris Prather.
 
-    Moose
-    MooseX::Getopt
-    MooseX::Types::Path::Class
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
-COPYRIGHT AND LICENCE
 
-Copyright (C) 2007-2011, Chris Prather
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.

@@ -1,8 +1,13 @@
 package MooseX::Daemonize::WithPidFile;
+{
+  $MooseX::Daemonize::WithPidFile::VERSION = '0.17';
+}
+BEGIN {
+  $MooseX::Daemonize::WithPidFile::AUTHORITY = 'cpan:PERIGRIN';
+}
 use strict;         # cause Perl::Critic errors are annoying
 use MooseX::Getopt; # to load the Getopt metaclass
 use Moose::Role;
-our $VERSION   = '0.16';
 
 
 use MooseX::Daemonize::Pid::File;
