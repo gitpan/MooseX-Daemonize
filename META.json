@@ -29,7 +29,8 @@
             "File::Path" : "2.08",
             "Moose" : "0.33",
             "MooseX::Getopt" : "0.07",
-            "MooseX::Types::Path::Class" : "0"
+            "MooseX::Types::Path::Class" : "0",
+            "Sub::Exporter" : "0"
          }
       },
       "test" : {
@@ -52,12 +53,17 @@
          "web" : "http://git.shadowcat.co.uk/gitweb/gitweb.cgi?p=gitmo/MooseX-Daemonize.git;a=summary"
       }
    },
-   "version" : "0.17",
+   "version" : "0.18",
    "x_Dist_Zilla" : {
       "perl" : {
          "version" : "5.016003"
       },
       "plugins" : [
+         {
+            "class" : "Dist::Zilla::Plugin::Git::NextVersion",
+            "name" : "Git::NextVersion",
+            "version" : "2.013"
+         },
          {
             "class" : "Dist::Zilla::Plugin::Authority",
             "name" : "Authority",
@@ -108,12 +114,37 @@
          {
             "class" : "Dist::Zilla::Plugin::ContributorsFromGit",
             "name" : "ContributorsFromGit",
-            "version" : "0.006"
+            "version" : "0.006001"
          },
          {
             "class" : "Dist::Zilla::Plugin::PkgVersion",
             "name" : "PkgVersion",
             "version" : "4.300034"
+         },
+         {
+            "class" : "Dist::Zilla::Plugin::NextRelease",
+            "name" : "NextRelease",
+            "version" : "4.300034"
+         },
+         {
+            "class" : "Dist::Zilla::Plugin::Git::Check",
+            "name" : "Git::Check",
+            "version" : "2.013"
+         },
+         {
+            "class" : "Dist::Zilla::Plugin::Git::Commit",
+            "name" : "Git::Commit",
+            "version" : "2.013"
+         },
+         {
+            "class" : "Dist::Zilla::Plugin::Git::Tag",
+            "name" : "Git::Tag",
+            "version" : "2.013"
+         },
+         {
+            "class" : "Dist::Zilla::Plugin::Git::Push",
+            "name" : "Git::Push",
+            "version" : "2.013"
          },
          {
             "class" : "Dist::Zilla::Plugin::GatherDir",
@@ -233,6 +264,7 @@
    "x_contributors" : [
       "Ash Berlin <ash@cpan.org>",
       "Brandon L Black <blblack@gmail.com>",
+      "Chisel Wright <chisel@chizography.net>",
       "Dave Rolsky <autarch@urth.org>",
       "Jonathan Sailor <jsailor@cpan.org>",
       "Karen Etheridge <ether@cpan.org>",

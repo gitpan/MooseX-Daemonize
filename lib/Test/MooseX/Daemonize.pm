@@ -1,6 +1,6 @@
 package Test::MooseX::Daemonize;
 {
-  $Test::MooseX::Daemonize::VERSION = '0.17';
+  $Test::MooseX::Daemonize::VERSION = '0.18';
 }
 use strict;
 
@@ -70,7 +70,7 @@ sub check_test_output {
 
 package Test::MooseX::Daemonize::Testable;
 {
-  $Test::MooseX::Daemonize::Testable::VERSION = '0.17';
+  $Test::MooseX::Daemonize::Testable::VERSION = '0.18';
 }
 use Moose::Role;
 

@@ -1,6 +1,6 @@
 package MooseX::Daemonize::Pid;
 {
-  $MooseX::Daemonize::Pid::VERSION = '0.17';
+  $MooseX::Daemonize::Pid::VERSION = '0.18';
 }
 BEGIN {
   $MooseX::Daemonize::Pid::AUTHORITY = 'cpan:PERIGRIN';

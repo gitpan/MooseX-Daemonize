@@ -1,6 +1,6 @@
 package MooseX::Daemonize;
 {
-  $MooseX::Daemonize::VERSION = '0.17';
+  $MooseX::Daemonize::VERSION = '0.18';
 }
 BEGIN {
   $MooseX::Daemonize::AUTHORITY = 'cpan:PERIGRIN';

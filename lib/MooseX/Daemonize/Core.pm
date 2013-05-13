@@ -1,6 +1,6 @@
 package MooseX::Daemonize::Core;
 {
-  $MooseX::Daemonize::Core::VERSION = '0.17';
+  $MooseX::Daemonize::Core::VERSION = '0.18';
 }
 BEGIN {
   $MooseX::Daemonize::Core::AUTHORITY = 'cpan:PERIGRIN';
@@ -283,6 +283,8 @@ it is suggested that you use the attributes listed above instead.
 =item meta()
 
 The C<meta()> method from L<Class::MOP::Class>
+
+=back
 
 =back
 

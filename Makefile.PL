@@ -25,14 +25,15 @@ my %WriteMakefileArgs = (
     "File::Path" => "2.08",
     "Moose" => "0.33",
     "MooseX::Getopt" => "0.07",
-    "MooseX::Types::Path::Class" => 0
+    "MooseX::Types::Path::Class" => 0,
+    "Sub::Exporter" => 0
   },
   "TEST_REQUIRES" => {
     "Test::Fatal" => 0,
     "Test::Moose" => 0,
     "Test::More" => "0.88"
   },
-  "VERSION" => "0.17",
+  "VERSION" => "0.18",
   "test" => {
     "TESTS" => "t/*.t"
   }
