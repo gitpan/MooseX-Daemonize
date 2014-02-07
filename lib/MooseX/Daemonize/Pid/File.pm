@@ -1,15 +1,16 @@
+use strict;
+use warnings;
 package MooseX::Daemonize::Pid::File;
 BEGIN {
   $MooseX::Daemonize::Pid::File::AUTHORITY = 'cpan:PERIGRIN';
 }
-use strict;    # because Kwalitee is pedantic
+$MooseX::Daemonize::Pid::File::VERSION = '0.19';
 use Moose;
 use Moose::Util::TypeConstraints;
 
-our $VERSION   = '0.15';
-
 use MooseX::Types::Path::Class;
 use MooseX::Getopt::OptionTypeMap;
+use namespace::autoclean;
 
 # NOTE:
 # set up some basic coercions
@@ -73,6 +74,10 @@ __END__
 =head1 NAME
 
 MooseX::Daemonize::Pid::File - PID file management for MooseX::Daemonize
+
+=head1 VERSION
+
+version 0.19
 
 =head1 DESCRIPTION
 

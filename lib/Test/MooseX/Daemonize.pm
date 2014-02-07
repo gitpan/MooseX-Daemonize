@@ -1,29 +1,19 @@
-package Test::MooseX::Daemonize;
-{
-  $Test::MooseX::Daemonize::VERSION = '0.18';
-}
 use strict;
-
-our $AUTHORITY = 'cpan:PERIGRIN';
-
-# BEGIN CARGO CULTING
-use Sub::Exporter;
-use Test::Builder;
-
-
-{
-    my @exports = qw[
-      daemonize_ok
-      check_test_output
-    ];
-
-    Sub::Exporter::setup_exporter(
-        {
-            exports => \@exports,
-            groups  => { default => \@exports }
-        }
-    );
+use warnings;
+package Test::MooseX::Daemonize;
+BEGIN {
+  $Test::MooseX::Daemonize::AUTHORITY = 'cpan:PERIGRIN';
 }
+$Test::MooseX::Daemonize::VERSION = '0.19';
+# BEGIN CARGO CULTING
+use Sub::Exporter::ForMethods 'method_installer';
+use Sub::Exporter -setup => {
+    exports => [ qw(daemonize_ok check_test_output) ],
+    groups  => { default => [ qw(daemonize_ok check_test_output) ] },
+    installer => method_installer,
+};
+
+use Test::Builder;
 
 our $Test = Test::Builder->new;
 
@@ -48,8 +38,8 @@ sub check_test_output {
     while ( my $line = <$stdout_in> ) {
         $line =~ s/\s+\z//;
         my $label;
-        if ( $line =~ /\A((not\s+)?ok)(?:\s+-)(?:\s+(.*))\z/ ) {
-            my ( $status, $not, $text ) = ( $1, $2, $3 );
+        if ( $line =~ /\A(?:(not\s+)?ok)(?:\s+-)(?:\s+(.*))\z/ ) {
+            my ( $not, $text ) = ( $1, $2, $3 );
             $text ||= '';
 
            # We don't just call ok(!$not), because that generates diagnostics of
@@ -69,9 +59,10 @@ sub check_test_output {
 }
 
 package Test::MooseX::Daemonize::Testable;
-{
-  $Test::MooseX::Daemonize::Testable::VERSION = '0.18';
+BEGIN {
+  $Test::MooseX::Daemonize::Testable::AUTHORITY = 'cpan:PERIGRIN';
 }
+$Test::MooseX::Daemonize::Testable::VERSION = '0.19';
 use Moose::Role;
 
 has test_output => (
@@ -104,6 +95,10 @@ __END__
 =head1 NAME
 
 Test::MooseX::Daemonize - Tool to help test MooseX::Daemonize applications
+
+=head1 VERSION
+
+version 0.19
 
 =head1 SYNOPSIS
 

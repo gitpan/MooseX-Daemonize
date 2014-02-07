@@ -1,14 +1,16 @@
+use strict;
+use warnings;
 package MooseX::Daemonize;
-{
-  $MooseX::Daemonize::VERSION = '0.18';
-}
 BEGIN {
   $MooseX::Daemonize::AUTHORITY = 'cpan:PERIGRIN';
 }
-use strict;    # because Kwalitee is pedantic
+# git description: v0.18-20-g1125a07
+$MooseX::Daemonize::VERSION = '0.19';
+
 use Moose::Role;
 use MooseX::Types::Path::Class;
 use File::Path qw(make_path);
+use namespace::autoclean;
 
 with 'MooseX::Daemonize::WithPidFile',
      'MooseX::Getopt';
@@ -219,7 +221,7 @@ sub stop {
     $self->clear_exit_code;
 
     # if the pid is not running
-    # then we dont need to stop
+    # then we don't need to stop
     # anything ...
     if ($self->pidfile->is_running) {
 
@@ -321,6 +323,10 @@ __END__
 
 MooseX::Daemonize - Role for daemonizing your Moose based application
 
+=head1 VERSION
+
+version 0.19
+
 =head1 WARNING
 
 The maintainers of this module now recommend using L<Daemon::Control> instead.
@@ -357,7 +363,7 @@ The maintainers of this module now recommend using L<Daemon::Control> instead.
 
 =head1 DESCRIPTION
 
-Often you want to write a persistant daemon that has a pid file, and responds
+Often you want to write a persistent daemon that has a pid file, and responds
 appropriately to Signals. This module provides a set of basic roles as an
 infrastructure to do that.
 
@@ -416,7 +422,7 @@ be set via Getopt's -f.
 =item I<no_double_fork Bool>
 
 If true, the process will not perform the typical double-fork, which is extra
-added protection from your process accidentally aquiring a controlling terminal.
+added protection from your process accidentally acquiring a controlling terminal.
 More information can be found by Googling "double fork daemonize".
 
 =item I<ignore_zombies Bool>
@@ -540,7 +546,7 @@ Handle a HUP signal. By default calls C<$self->restart()>
 
 =head2 Exit Code Methods
 
-These are overriable constant methods used for setting the exit code.
+These are overridable constant methods used for setting the exit code.
 
 =over 4
 
@@ -577,7 +583,7 @@ None reported. Although obviously this will not work on Windows.
 No bugs have been reported.
 
 Please report any bugs or feature requests to
-C<bug-acme-dahut-call@rt.cpan.org>, or through the web interface at
+C<bug-MooseX-Daemonize@rt.cpan.org>, or through the web interface at
 L<http://rt.cpan.org>.
 
 =head1 SEE ALSO

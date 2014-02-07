@@ -1,14 +1,13 @@
+use strict;
+use warnings;
 package MooseX::Daemonize::WithPidFile;
-{
-  $MooseX::Daemonize::WithPidFile::VERSION = '0.18';
-}
 BEGIN {
   $MooseX::Daemonize::WithPidFile::AUTHORITY = 'cpan:PERIGRIN';
 }
-use strict;         # cause Perl::Critic errors are annoying
+$MooseX::Daemonize::WithPidFile::VERSION = '0.19';
 use MooseX::Getopt; # to load the Getopt metaclass
 use Moose::Role;
-
+use namespace::autoclean;
 
 use MooseX::Daemonize::Pid::File;
 
@@ -51,6 +50,10 @@ __END__
 =head1 NAME
 
 MooseX::Daemonize::WithPidFile - A Role with the core daemonization and pidfile management
+
+=head1 VERSION
+
+version 0.19
 
 =head1 SYNOPSIS
 

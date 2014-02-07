@@ -1,13 +1,13 @@
+use strict;
+use warnings;
 package MooseX::Daemonize::Pid;
-{
-  $MooseX::Daemonize::Pid::VERSION = '0.18';
-}
 BEGIN {
   $MooseX::Daemonize::Pid::AUTHORITY = 'cpan:PERIGRIN';
 }
-use strict;    # because Kwalitee is pedantic
+$MooseX::Daemonize::Pid::VERSION = '0.19';
 use Moose;
 use Moose::Util::TypeConstraints;
+use namespace::autoclean;
 
 coerce 'MooseX::Daemonize::Pid'
     => from 'Int'
@@ -34,6 +34,10 @@ __END__
 =head1 NAME
 
 MooseX::Daemonize::Pid - PID management for MooseX::Daemonize
+
+=head1 VERSION
+
+version 0.19
 
 =head1 DESCRIPTION
 
